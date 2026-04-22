@@ -1,0 +1,38 @@
+# Local tools and binaries
+**/Start/tools/**
+!**/Start/tools/.gitkeep
+
+# Input media
+**/Start/To Enhance/*
+!**/Start/To Enhance/.gitkeep
+
+# Generated outputs and work folders
+**/Start/Enhanced/*
+!**/Start/Enhanced/.gitkeep
+
+# Logs, temp files, and processing artifacts
+**/logs/**
+**/temp/**
+**/segments/**
+**/enhanced/**
+*.log
+*.tmp
+*.part
+
+# Media files should stay local
+*.mp4
+*.mkv
+*.mov
+*.avi
+*.webm
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.webp
+*.tif
+*.tiff
+
+# Windows clutter
+Thumbs.db
+desktop.ini
