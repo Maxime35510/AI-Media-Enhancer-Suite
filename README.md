@@ -1,143 +1,128 @@
-# AI Media Enhancer Suite
+# AI Media Enhancer
 
-A Windows-first toolkit for enhancing old, low-quality videos and images with a workflow that is built to survive long jobs, crashes, restarts, and imperfect files.
+A single-folder Windows tool that automatically detects whether you dropped an image or a video, then enhances it with FFmpeg, Video2X, and RealESRGAN.
 
-This suite contains two focused tools and one launcher:
-
-- `AI enhance videos` turns a video into a validated enhanced MP4.
-- `AI enhance images` turns one or many images into enhanced PNG files, including an Ultra 4K RAW mode.
-- `Start_AI_Enhancer.bat` is the main dashboard that opens folders, checks tools, and launches the right workflow.
-
-The philosophy is simple: reliable first, fast second. If something breaks, the scripts try to validate it, rebuild only what is needed, and tell you what to do next.
-
-## Quick Start
-
-1. Open:
+This project is designed for a simple daily workflow:
 
 ```text
-AI enhance/Start_AI_Enhancer.bat
+drop file -> run BAT -> choose file -> get enhanced result
 ```
 
-2. Choose what you want:
+No separate image project. No separate video project. One tool, one place.
 
-```text
-1. Enhance videos
-2. Enhance images
-7. Check projects and tools
-```
-
-3. Put your media in the matching folder:
-
-```text
-AI enhance/AI enhance videos/Start/To Enhance/
-AI enhance/AI enhance images/Start/To Enhance/
-```
-
-4. Run the enhancer and follow the menu.
-
-Final outputs are saved in:
-
-```text
-AI enhance/AI enhance videos/Start/Enhanced/
-AI enhance/AI enhance images/Start/Enhanced/
-```
-
-## Project Layout
+## Folder Layout
 
 ```text
 AI enhance/
 ├── Start_AI_Enhancer.bat
 ├── README.md
-├── AI enhance videos/
-│   └── Start/
-│       ├── Start_Enhance_Videos.bat
-│       ├── To Enhance/
-│       ├── Enhanced/
-│       └── tools/
-└── AI enhance images/
-    └── Start/
-        ├── Start_Enhance_Images.bat
-        ├── To Enhance/
-        ├── Enhanced/
-        └── tools/
+├── To enhance/
+├── Enhanced/
+├── Tools/
+└── Segments/
 ```
 
-## Unified Launcher
+## What Each Folder Does
 
-`Start_AI_Enhancer.bat` is the front door.
+### `To enhance`
 
-It can:
+Put your source files here.
 
-- launch the video enhancer
-- launch the image enhancer
-- open input and output folders
-- check that both projects exist
-- check that FFmpeg, FFprobe, and Video2X are available
-- create missing input/output folders automatically
-- explain what to fix if something is missing
+Supported videos:
 
-For a fast health check from a terminal:
+```text
+.mp4 .mkv .mov .avi .m4v .webm
+```
+
+Supported images:
+
+```text
+.png .jpg .jpeg .bmp .webp .tif .tiff
+```
+
+### `Enhanced`
+
+Final enhanced files are saved here.
+
+Examples:
+
+```text
+movie_enhanced.mp4
+photo_enhanced.png
+```
+
+### `Tools`
+
+Local binaries live here:
+
+```text
+Tools/ffmpeg/bin/ffmpeg.exe
+Tools/ffmpeg/bin/ffprobe.exe
+Tools/video2x/video2x.exe
+```
+
+### `Segments`
+
+This is the resumable work area.
+
+It stores:
+
+- split video segments
+- enhanced video segments
+- image temp files
+- validation logs
+- Video2X logs
+- FFmpeg logs
+
+Do not delete this folder while a job is unfinished. It is what allows the tool to resume instead of restarting from zero.
+
+## Main Script
+
+Run:
+
+```text
+Start_AI_Enhancer.bat
+```
+
+The script scans `To enhance`, detects file types, and shows a list like:
+
+```text
+1. [image] photo.jpg
+2. [video] cartoon.mp4
+```
+
+If there are several images, you can type:
+
+```text
+all
+```
+
+That processes all images in one batch.
+
+Videos are processed one at a time on purpose because they can run for many hours.
+
+## Health Check
+
+From a terminal:
 
 ```bat
 Start_AI_Enhancer.bat check
 ```
 
-## Video Enhancer
+This verifies:
 
-The video workflow is made for long, slow enhancement jobs on modest Windows PCs.
+- root folders exist
+- FFmpeg exists
+- FFprobe exists
+- Video2X exists
 
-It does the following:
+If something is missing, the script tells you what to fix.
 
-1. Detects videos in `To Enhance`.
-2. Lets you choose which video to process.
-3. Creates a dedicated work folder in `Enhanced`.
-4. Splits the video into 5-minute segments.
-5. Upscales each segment with Video2X and RealESRGAN.
-6. Validates each enhanced segment.
-7. Rebuilds missing or broken segments only.
-8. Restores audio.
-9. Compiles the final enhanced video.
-10. Validates duration, audio, and final output.
+## Image Enhancement
 
-Default video settings:
+The image workflow uses RealESRGAN through Video2X.
 
-```text
-Processor: RealESRGAN
-Model: realesr-animevideov3
-Scale: 2x
-Segment length: 300 seconds
-Final target: 1080p MP4
-Audio: copy first, AAC fallback if needed
-```
-
-The final video is named:
-
-```text
-original_name_enhanced.mp4
-```
-
-The video tool keeps segments and work files on purpose. That makes resume and repair much safer.
-
-## Image Enhancer
-
-The image workflow is designed for single images or batches.
-
-If multiple images are found, the script lets you choose:
-
-```text
-1, 2, 3, ...
-all
-```
-
-Final images are named:
-
-```text
-original_name_enhanced.png
-```
-
-### Image Modes
-
-The image tool now includes stronger modes for visibly damaged or pixelated sources:
+Available modes:
 
 ```text
 1. Ultra 4K RAW
@@ -147,115 +132,107 @@ The image tool now includes stronger modes for visibly damaged or pixelated sour
 5. Legacy 2x Anime
 ```
 
-`Ultra 4K RAW` is the recommended mode when the source image is very small, blurry, compressed, or pixelated.
+Recommended mode:
+
+```text
+Ultra 4K RAW
+```
 
 It uses:
 
 ```text
-RealESRGAN model: realesrgan-plus
-AI scale: 4x
+Model: realesrgan-plus
+Scale: 4x
 Final target: at least 4096 px on the long edge
-Output: PNG lossless
+Output: PNG
 Extra pass: light sharpen
 ```
 
-If Video2X returns a strange exit code but the enhanced frame is valid, the script keeps the good frame and continues. If the intermediate file is broken, it deletes it and retries safely.
+The image system validates the final PNG. If old temp files were created with another mode, it rebuilds them automatically.
 
-## Resume And Repair
+## Video Enhancement
 
-Both tools are built to resume.
+The video workflow is conservative and resumable.
 
-If the PC shuts down, the process crashes, or you stop it manually, run the same BAT again. The scripts validate existing work and continue from what is still usable.
+It does this:
 
-They handle common problems like:
+1. Validates the input video.
+2. Splits it into 5-minute segments.
+3. Upscales each segment with Video2X + RealESRGAN.
+4. Restores audio per segment.
+5. Validates every enhanced segment.
+6. Rebuilds only missing or broken enhanced segments.
+7. Compiles the final video.
+8. Validates duration, audio, readability, and 1080p height.
 
-- missing output
-- broken temp files
-- incomplete segments
-- old work generated by a different mode
-- invalid final files
-- missing folders
-- missing tools
-
-The goal is not to pretend nothing can fail. The goal is to always know the next move.
-
-## Keyboard Controls
-
-Unified launcher:
+Default video settings:
 
 ```text
-1-9  choose a menu option
+Processor: RealESRGAN
+Model: realesr-animevideov3
+Scale: 2x
+Segment length: 300 seconds
+Final height: 1080p
+Audio: copy first, AAC fallback
 ```
 
-Video enhancer:
+## Resume Behavior
+
+If the PC shuts down, Video2X crashes, or you stop the job:
 
 ```text
-Number keys  choose a video
-Ctrl+C       stop a long job
-Y            confirm stop after Ctrl+C
+run Start_AI_Enhancer.bat again
 ```
 
-Video2X while active:
+The tool checks what already exists and continues from the last valid step.
+
+It can recover from:
+
+- missing segments
+- broken enhanced segments
+- invalid temp files
+- failed audio copy
+- invalid final video
+- old image temp files from another mode
+
+## Keyboard Notes
+
+Inside the BAT:
 
 ```text
-Space  pause or resume
-q      abort Video2X
+number  choose a file or mode
+all     process all images
 ```
 
-Image enhancer:
+During Video2X:
 
 ```text
-1-5  choose enhancement mode
-1..n choose one image
-all  process all images
+Space   pause/resume
+q       abort Video2X
+Ctrl+C  stop the BAT, then rerun later to resume
 ```
 
-## Required Tools
+## GitHub Notes
 
-The scripts expect local Windows binaries:
+The repo should include:
 
-```text
-ffmpeg.exe
-ffprobe.exe
-video2x.exe
-```
+- `Start_AI_Enhancer.bat`
+- `README.md`
+- empty folder markers
+- `.gitignore`
 
-Recommended locations:
+The repo should not include:
 
-```text
-AI enhance videos/Start/tools/
-AI enhance images/Start/tools/
-```
-
-The tools are intentionally not stored in this GitHub repository because they are large binaries.
-
-## What Is Not Tracked
-
-The repository should not include:
-
-- original videos or images
+- original media
 - enhanced outputs
-- split video segments
+- split segments
 - temp files
 - logs
 - FFmpeg binaries
 - Video2X binaries
 
-Only the scripts, folder structure, and documentation belong in Git.
+## The Point
 
-## Best Use
+This is meant to feel like a personal media repair station.
 
-Use the suite when you want a practical local workflow for:
-
-- old cartoons or anime
-- low-resolution videos
-- pixelated images
-- batch image enhancement
-- long jobs that may need pause/resume
-- a low-end Windows PC where reliability matters more than speed
-
-## Short Version
-
-Put media in `To Enhance`, run `Start_AI_Enhancer.bat`, choose video or image, and let the scripts build validated enhanced output in `Enhanced`.
-
-It is your local enhancement station: structured, resumable, and stubborn in the useful way.
+Drop a bad-quality image or video into `To enhance`, run one BAT, and let the tool choose the right path.

@@ -1,29 +1,25 @@
 # Local tools and binaries
-**/Start/tools/**
-!**/Start/tools/.gitkeep
+Tools/**
+!Tools/.gitkeep
 
-# Input media
-**/Start/To Enhance/*
-!**/Start/To Enhance/.gitkeep
+# Input media stays local
+To enhance/**
+!To enhance/.gitkeep
 
-# Generated outputs and work folders
-**/Start/Enhanced/*
-!**/Start/Enhanced/.gitkeep
+# Final outputs stay local
+Enhanced/**
+!Enhanced/.gitkeep
 
-# Logs, temp files, and processing artifacts
-**/logs/**
-**/temp/**
-**/segments/**
-**/enhanced/**
-*.log
-*.tmp
-*.part
+# Work files, logs, split segments, temp files
+Segments/**
+!Segments/.gitkeep
 
-# Media files should stay local
+# Media files should never be committed
 *.mp4
 *.mkv
 *.mov
 *.avi
+*.m4v
 *.webm
 *.png
 *.jpg
@@ -32,6 +28,11 @@
 *.webp
 *.tif
 *.tiff
+
+# Logs and temp files
+*.log
+*.tmp
+*.part
 
 # Windows clutter
 Thumbs.db
