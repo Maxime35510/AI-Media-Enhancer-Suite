@@ -33,12 +33,13 @@ $FinalCompileSpeedFactor = 4.0
 $ImageScale = 4
 $ImageModel = "realesrgan-plus"
 $ImageProcessor = "realesrgan"
-$ImageModeName = "Ultra 4K RAW"
-$ImageModeDescription = "4x RealESRGAN, lossless PNG, force 4096 px long edge"
-$ImageExtractFilter = "unsharp=5:5:0.85:3:3:0.35"
+$ImageModeName = "Pixel Repair / Unblur 4K"
+$ImageModeDescription = "4x RealESRGAN, pre-clean, synthetic pixels, stronger deblur"
+$ImagePreFilter = "format=yuv444p,hqdn3d=1.2:1.2:6:6,unsharp=3:3:0.30:3:3:0.00,format=rgb24"
+$ImageExtractFilter = "unsharp=7:7:1.20:5:5:0.50,eq=contrast=1.05:saturation=1.02"
 $ImageTargetLongEdge = 4096
 $ImageOutputExtension = ".png"
-$ImageMegapixelsPerSecond = 0.075
+$ImageMegapixelsPerSecond = 0.065
 
 $VideoExtensions = @(".mp4", ".mkv", ".mov", ".avi", ".m4v", ".webm")
 $ImageExtensions = @(".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff")
@@ -564,19 +565,19 @@ function Test-EnhancedImage([string]$Source, [string]$Output, [bool]$RequireStil
 
 function Select-ImageMode {
     Write-Host "Image enhancement mode:"
-    Write-Host "  1. Ultra 4K RAW (recommended) - strongest visible repair, PNG lossless"
-    Write-Host "  2. Photo / Realistic Strong - 4x native"
+    Write-Host "  1. Pixel Repair / Unblur 4K (recommended) - adds pixels, deblocks, sharpens"
+    Write-Host "  2. Photo / Realistic Strong - 4x native, lighter deblur"
     Write-Host "  3. Anime / Cartoon Ultra 4K"
     Write-Host "  4. Anime / Cartoon Conservative"
     Write-Host "  5. Legacy 2x Anime"
     Write-Host ""
     $choice = Read-ChoiceNumber 1 5 "Choose mode"
     switch ($choice) {
-        1 { $script:ImageModeName="Ultra 4K RAW"; $script:ImageModeDescription="4x RealESRGAN, lossless PNG, force 4096 px long edge"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus"; $script:ImageExtractFilter="unsharp=5:5:0.85:3:3:0.35"; $script:ImageTargetLongEdge=4096; $script:ImageMegapixelsPerSecond=0.075 }
-        2 { $script:ImageModeName="Photo / Realistic Strong"; $script:ImageModeDescription="4x, realesrgan-plus, light sharpen"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus"; $script:ImageExtractFilter="unsharp=5:5:0.7:3:3:0.3"; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.10 }
-        3 { $script:ImageModeName="Anime / Cartoon Ultra 4K"; $script:ImageModeDescription="4x, realesrgan-plus-anime, force 4096 px long edge"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus-anime"; $script:ImageExtractFilter="unsharp=5:5:0.65:3:3:0.25"; $script:ImageTargetLongEdge=4096; $script:ImageMegapixelsPerSecond=0.075 }
-        4 { $script:ImageModeName="Anime / Cartoon Conservative"; $script:ImageModeDescription="4x, realesr-animevideov3"; $script:ImageScale=4; $script:ImageModel="realesr-animevideov3"; $script:ImageExtractFilter=""; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.12 }
-        5 { $script:ImageModeName="Legacy 2x Anime"; $script:ImageModeDescription="2x, realesr-animevideov3"; $script:ImageScale=2; $script:ImageModel="realesr-animevideov3"; $script:ImageExtractFilter=""; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.25 }
+        1 { $script:ImageModeName="Pixel Repair / Unblur 4K"; $script:ImageModeDescription="4x RealESRGAN, pre-clean, synthetic pixels, stronger deblur"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus"; $script:ImagePreFilter="format=yuv444p,hqdn3d=1.2:1.2:6:6,unsharp=3:3:0.30:3:3:0.00,format=rgb24"; $script:ImageExtractFilter="unsharp=7:7:1.20:5:5:0.50,eq=contrast=1.05:saturation=1.02"; $script:ImageTargetLongEdge=4096; $script:ImageMegapixelsPerSecond=0.065 }
+        2 { $script:ImageModeName="Photo / Realistic Strong"; $script:ImageModeDescription="4x, realesrgan-plus, lighter deblur"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus"; $script:ImagePreFilter="format=yuv444p,hqdn3d=0.9:0.9:4:4,format=rgb24"; $script:ImageExtractFilter="unsharp=5:5:0.80:3:3:0.30,eq=contrast=1.03:saturation=1.02"; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.09 }
+        3 { $script:ImageModeName="Anime / Cartoon Ultra 4K"; $script:ImageModeDescription="4x, realesrgan-plus-anime, force 4096 px long edge"; $script:ImageScale=4; $script:ImageModel="realesrgan-plus-anime"; $script:ImagePreFilter="format=yuv444p,hqdn3d=0.8:0.8:4:4,format=rgb24"; $script:ImageExtractFilter="unsharp=5:5:0.75:3:3:0.25"; $script:ImageTargetLongEdge=4096; $script:ImageMegapixelsPerSecond=0.075 }
+        4 { $script:ImageModeName="Anime / Cartoon Conservative"; $script:ImageModeDescription="4x, realesr-animevideov3"; $script:ImageScale=4; $script:ImageModel="realesr-animevideov3"; $script:ImagePreFilter=""; $script:ImageExtractFilter="unsharp=3:3:0.35:3:3:0.15"; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.12 }
+        5 { $script:ImageModeName="Legacy 2x Anime"; $script:ImageModeDescription="2x, realesr-animevideov3"; $script:ImageScale=2; $script:ImageModel="realesr-animevideov3"; $script:ImagePreFilter=""; $script:ImageExtractFilter=""; $script:ImageTargetLongEdge=0; $script:ImageMegapixelsPerSecond=0.25 }
     }
     Write-Host ""
     Write-Host "Selected: $ImageModeName - $ImageModeDescription"
@@ -613,7 +614,7 @@ function Show-ImageEstimate([string]$ImagePath) {
 }
 
 function Get-ImageModeSignature {
-    return "pipeline=4|mode=$ImageModeName|model=$ImageModel|scale=$ImageScale|target=$ImageTargetLongEdge|filter=$ImageExtractFilter|sourceGray=$script:SourceIsGrayscale"
+    return "pipeline=5|mode=$ImageModeName|model=$ImageModel|scale=$ImageScale|target=$ImageTargetLongEdge|pre=$ImagePreFilter|post=$ImageExtractFilter|sourceGray=$script:SourceIsGrayscale"
 }
 
 function Test-ImageTempModeMatches {
@@ -635,6 +636,25 @@ function Invoke-Video2XImage([string[]]$Arguments, [string]$AttemptName) {
     return $code
 }
 
+function Prepare-ImageForVideo2X {
+    if ([string]::IsNullOrWhiteSpace($ImagePreFilter)) {
+        return $script:InputImage
+    }
+
+    Log "Preparing image pre-pass: deblock/denoise/light unblur before RealESRGAN."
+    Remove-Item -LiteralPath $script:PreparedInputImage -Force -ErrorAction SilentlyContinue
+    $prepArgs = @("-hide_banner","-y","-i",$script:InputImage,"-vf",$ImagePreFilter,"-frames:v","1",$script:PreparedInputImage)
+    $prepCode = Run-NativeLogged $script:FFmpeg $prepArgs $script:PreprocessLogFile
+    if ($prepCode -eq 0 -and (Test-ImageReadable $script:PreparedInputImage)) {
+        Log "Image pre-pass completed: $script:PreparedInputImage"
+        return $script:PreparedInputImage
+    }
+
+    Log "WARNING: Image pre-pass failed. Falling back to original image input."
+    Remove-Item -LiteralPath $script:PreparedInputImage -Force -ErrorAction SilentlyContinue
+    return $script:InputImage
+}
+
 function Initialize-ImageProject([IO.FileInfo]$Image) {
     $script:InputImage = $Image.FullName
     $projectName = Safe-Name ([IO.Path]::GetFileNameWithoutExtension($script:InputImage))
@@ -646,8 +666,10 @@ function Initialize-ImageProject([IO.FileInfo]$Image) {
     $script:Video2XHelpFile = Join-Path $script:LogsDir "video2x_help.txt"
     $script:Video2XLogFile = Join-Path $script:LogsDir "video2x_run.log"
     $script:ValidationLogFile = Join-Path $script:LogsDir "validation.log"
+    $script:PreprocessLogFile = Join-Path $script:LogsDir "preprocess_image.log"
     $script:ExtractLogFile = Join-Path $script:LogsDir "extract_png.log"
     $script:LockDir = Join-Path $script:TempDir "pipeline.lock"
+    $script:PreparedInputImage = Join-Path $script:TempDir "$projectName`_prepared.png"
     $script:TempOutput = Join-Path $script:TempDir "$projectName`_video2x.mp4"
     $script:TempModeFile = Join-Path $script:TempDir "video2x_mode.txt"
     $script:ProjectOutput = Join-Path $script:ImageWorkDir "$projectName`_enhanced$ImageOutputExtension"
@@ -676,7 +698,8 @@ function Process-OneImage([IO.FileInfo]$Image, [int]$Index, [int]$Total) {
         if ((Test-Path -LiteralPath $script:TempOutput) -and !(Test-ImageTempModeMatches)) { Log "Deleting temp from older image mode."; Remove-Item -LiteralPath $script:TempOutput -Force -ErrorAction SilentlyContinue; Remove-Item -LiteralPath $script:TempModeFile -Force -ErrorAction SilentlyContinue }
         if ((Test-Path -LiteralPath $script:TempOutput) -and !(Test-EnhancedImage $script:InputImage $script:TempOutput $false)) { Log "Deleting invalid image temp."; Remove-Item -LiteralPath $script:TempOutput -Force -ErrorAction SilentlyContinue; Remove-Item -LiteralPath $script:TempModeFile -Force -ErrorAction SilentlyContinue }
         if (!(Test-Path -LiteralPath $script:TempOutput)) {
-            $baseArgs = @("-i", $script:InputImage, "-o", $script:TempOutput, "-p", $ImageProcessor, "-s", "$ImageScale", "--realesrgan-model", $ImageModel)
+            $video2xInputImage = Prepare-ImageForVideo2X
+            $baseArgs = @("-i", $video2xInputImage, "-o", $script:TempOutput, "-p", $ImageProcessor, "-s", "$ImageScale", "--realesrgan-model", $ImageModel)
             $safeArgs = $baseArgs + @("-c", "libx264", "--pix-fmt", "yuv444p", "-e", "crf=12", "-e", "preset=veryfast")
             $attempt = "high quality YUV intermediate"
             $code = Invoke-Video2XImage $safeArgs $attempt
@@ -688,7 +711,7 @@ function Process-OneImage([IO.FileInfo]$Image, [int]$Index, [int]$Total) {
             }
             if ($code -ne 0 -and !(Test-EnhancedImage $script:InputImage $script:TempOutput $false)) { throw "Video2X image processing failed. See $script:Video2XLogFile" }
             if ($code -ne 0) { Log "Video2X returned code $code, but output frame is valid. Continuing." }
-            Set-Content -LiteralPath $script:TempModeFile -Value @((Get-ImageModeSignature), "intermediate=$attempt", "created=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')") -Encoding UTF8
+            Set-Content -LiteralPath $script:TempModeFile -Value @((Get-ImageModeSignature), "input=$video2xInputImage", "intermediate=$attempt", "created=$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')") -Encoding UTF8
         } else {
             Log "Using existing valid image temp."
         }

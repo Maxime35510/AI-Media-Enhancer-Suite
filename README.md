@@ -103,7 +103,7 @@ The image pipeline uses Video2X with RealESRGAN.
 Available modes:
 
 ```text
-1. Ultra 4K RAW
+1. Pixel Repair / Unblur 4K
 2. Photo / Realistic Strong
 3. Anime / Cartoon Ultra 4K
 4. Anime / Cartoon Conservative
@@ -113,7 +113,7 @@ Available modes:
 Recommended mode:
 
 ```text
-Ultra 4K RAW
+Pixel Repair / Unblur 4K
 ```
 
 It uses:
@@ -123,12 +123,16 @@ Model: realesrgan-plus
 Scale: 4x
 Final target: at least 4096 px on the long edge
 Output: PNG
-Extra pass: light sharpen
+Pre-pass: light deblock / denoise / unblur preparation
+AI pass: RealESRGAN synthetic pixel reconstruction
+Post-pass: stronger sharpen / contrast repair
 ```
 
 The image pipeline validates the final PNG. If temp files were created with another mode or an older pipeline, the tool deletes only the stale files and rebuilds them.
 
 For old grayscale JPGs with small color noise, the tool also protects against broken color channels. If the source is visually black and white, the final enhanced PNG is forced back to grayscale so green/magenta corruption is rejected and rebuilt automatically.
+
+Important: the tool can add cleaner pixels and reduce blur/pixelation, but it cannot recover real details that are completely absent from the source. Very blurry images will become larger and cleaner, not magically identical to a sharp original.
 
 ## Video Enhancement
 
