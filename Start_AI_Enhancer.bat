@@ -499,6 +499,51 @@ function Test-ImageReadable([string]$File) {
     return ($code -eq 0)
 }
 
+function Get-ImageColorStats([string]$File) {
+    Add-Type -AssemblyName System.Drawing
+    $bitmap = $null
+    try {
+        $bitmap = [System.Drawing.Bitmap]::new($File)
+        $stepX = [Math]::Max(1, [int][Math]::Floor($bitmap.Width / 48))
+        $stepY = [Math]::Max(1, [int][Math]::Floor($bitmap.Height / 48))
+        $sumDiff = 0.0
+        $maxDiff = 0
+        $colorPixels = 0
+        $count = 0
+        for ($y = 0; $y -lt $bitmap.Height; $y += $stepY) {
+            for ($x = 0; $x -lt $bitmap.Width; $x += $stepX) {
+                $c = $bitmap.GetPixel($x, $y)
+                $d1 = [Math]::Abs([int]$c.R - [int]$c.G)
+                $d2 = [Math]::Abs([int]$c.G - [int]$c.B)
+                $d3 = [Math]::Abs([int]$c.R - [int]$c.B)
+                $d = [Math]::Max($d1, [Math]::Max($d2, $d3))
+                $sumDiff += $d
+                if ($d -gt $maxDiff) { $maxDiff = $d }
+                if ($d -gt 18) { $colorPixels++ }
+                $count++
+            }
+        }
+        if ($count -eq 0) { return [pscustomobject]@{ AverageDiff=0.0; MaxDiff=0; ColorFraction=0.0 } }
+        return [pscustomobject]@{
+            AverageDiff = $sumDiff / $count
+            MaxDiff = $maxDiff
+            ColorFraction = $colorPixels / $count
+        }
+    } finally {
+        if ($bitmap) { $bitmap.Dispose() }
+    }
+}
+
+function Test-ImageLooksGrayscale([string]$File) {
+    try {
+        $stats = Get-ImageColorStats $File
+        # Old JPEGs often contain tiny RGB noise even when the image is visually grayscale.
+        return ($stats.AverageDiff -lt 22.0 -and $stats.MaxDiff -lt 80)
+    } catch {
+        return $false
+    }
+}
+
 function Test-EnhancedImage([string]$Source, [string]$Output, [bool]$RequireStillImage = $true) {
     if (!(Test-ImageReadable $Output)) { return $false }
     try {
@@ -512,6 +557,7 @@ function Test-EnhancedImage([string]$Source, [string]$Output, [bool]$RequireStil
         $minH = [Math]::Floor($src.Height * $ImageScale * 0.98)
         if ($out.Width -lt $minW -or $out.Height -lt $minH) { return $false }
         if ($RequireStillImage -and $ImageTargetLongEdge -gt 0 -and ([Math]::Max($out.Width, $out.Height) -lt [Math]::Floor($ImageTargetLongEdge * 0.98))) { return $false }
+        if ($RequireStillImage -and (Test-ImageLooksGrayscale $Source) -and !(Test-ImageLooksGrayscale $Output)) { return $false }
         return $true
     } catch { return $false }
 }
@@ -567,7 +613,7 @@ function Show-ImageEstimate([string]$ImagePath) {
 }
 
 function Get-ImageModeSignature {
-    return "mode=$ImageModeName|model=$ImageModel|scale=$ImageScale|target=$ImageTargetLongEdge|filter=$ImageExtractFilter"
+    return "pipeline=4|mode=$ImageModeName|model=$ImageModel|scale=$ImageScale|target=$ImageTargetLongEdge|filter=$ImageExtractFilter|sourceGray=$script:SourceIsGrayscale"
 }
 
 function Test-ImageTempModeMatches {
@@ -608,6 +654,7 @@ function Initialize-ImageProject([IO.FileInfo]$Image) {
     $script:FinalOutput = Join-Path $EnhancedRootDir "$projectName`_enhanced$ImageOutputExtension"
     New-Item -ItemType Directory -Force -Path $script:ProjectDir, $script:ImageWorkDir, $script:TempDir, $script:LogsDir | Out-Null
     Set-Content -LiteralPath (Join-Path $script:ProjectDir "source_image.txt") -Value $script:InputImage -Encoding UTF8
+    $script:SourceIsGrayscale = Test-ImageLooksGrayscale $script:InputImage
 }
 
 function Process-OneImage([IO.FileInfo]$Image, [int]$Index, [int]$Total) {
@@ -630,11 +677,11 @@ function Process-OneImage([IO.FileInfo]$Image, [int]$Index, [int]$Total) {
         if ((Test-Path -LiteralPath $script:TempOutput) -and !(Test-EnhancedImage $script:InputImage $script:TempOutput $false)) { Log "Deleting invalid image temp."; Remove-Item -LiteralPath $script:TempOutput -Force -ErrorAction SilentlyContinue; Remove-Item -LiteralPath $script:TempModeFile -Force -ErrorAction SilentlyContinue }
         if (!(Test-Path -LiteralPath $script:TempOutput)) {
             $baseArgs = @("-i", $script:InputImage, "-o", $script:TempOutput, "-p", $ImageProcessor, "-s", "$ImageScale", "--realesrgan-model", $ImageModel)
-            $losslessArgs = $baseArgs + @("-c", "libx264rgb", "--pix-fmt", "rgb24", "-e", "crf=0", "-e", "preset=veryfast")
-            $attempt = "lossless RGB intermediate"
-            $code = Invoke-Video2XImage $losslessArgs $attempt
+            $safeArgs = $baseArgs + @("-c", "libx264", "--pix-fmt", "yuv444p", "-e", "crf=12", "-e", "preset=veryfast")
+            $attempt = "high quality YUV intermediate"
+            $code = Invoke-Video2XImage $safeArgs $attempt
             if ($code -ne 0 -and !(Test-EnhancedImage $script:InputImage $script:TempOutput $false)) {
-                Log "Lossless attempt failed. Retrying default Video2X encoder."
+                Log "High quality YUV attempt failed. Retrying default Video2X encoder."
                 Remove-Item -LiteralPath $script:TempOutput -Force -ErrorAction SilentlyContinue
                 $attempt = "default Video2X encoder fallback"
                 $code = Invoke-Video2XImage $baseArgs $attempt
@@ -650,6 +697,11 @@ function Process-OneImage([IO.FileInfo]$Image, [int]$Index, [int]$Total) {
         if ($ImageTargetLongEdge -gt 0 -and ([Math]::Max($tempInfo.Width, $tempInfo.Height) -lt $ImageTargetLongEdge)) {
             $factor = [double]$ImageTargetLongEdge / [double]([Math]::Max($tempInfo.Width, $tempInfo.Height))
             $filters += "scale=$(Get-EvenDimension ($tempInfo.Width * $factor)):$(Get-EvenDimension ($tempInfo.Height * $factor)):flags=lanczos"
+        }
+        if ($script:SourceIsGrayscale) {
+            Log "Source is grayscale. Forcing grayscale final output to prevent color-channel artifacts."
+            $filters += "format=gray"
+            $filters += "format=rgb24"
         }
         if (![string]::IsNullOrWhiteSpace($ImageExtractFilter)) { $filters += $ImageExtractFilter }
         $extractArgs = @("-hide_banner","-y","-i",$script:TempOutput)

@@ -1,28 +1,28 @@
 # AI Media Enhancer
 
-A single-folder Windows tool that automatically detects whether you dropped an image or a video, then enhances it with FFmpeg, Video2X, and RealESRGAN.
+One Windows batch launcher for enhancing both videos and images with FFmpeg, Video2X, and RealESRGAN.
 
-This project is designed for a simple daily workflow:
+Drop a file in one folder, run one BAT, choose what you want, and let the tool handle the rest.
 
 ```text
-drop file -> run BAT -> choose file -> get enhanced result
+drop media -> run Start_AI_Enhancer.bat -> choose file/mode -> get enhanced output
 ```
 
-No separate image project. No separate video project. One tool, one place.
+The project is built for reliability first: resumable work, validation, repair, logs, and conservative defaults for long jobs on modest Windows PCs.
 
 ## Folder Layout
 
 ```text
 AI enhance/
-├── Start_AI_Enhancer.bat
-├── README.md
-├── To enhance/
-├── Enhanced/
-├── Tools/
-└── Segments/
++-- Start_AI_Enhancer.bat
++-- README.md
++-- To enhance/
++-- Enhanced/
++-- Tools/
++-- Segments/
 ```
 
-## What Each Folder Does
+## Folders
 
 ### `To enhance`
 
@@ -42,7 +42,7 @@ Supported images:
 
 ### `Enhanced`
 
-Final enhanced files are saved here.
+Final outputs are saved here.
 
 Examples:
 
@@ -53,7 +53,7 @@ photo_enhanced.png
 
 ### `Tools`
 
-Local binaries live here:
+Local binaries go here:
 
 ```text
 Tools/ffmpeg/bin/ffmpeg.exe
@@ -63,41 +63,18 @@ Tools/video2x/video2x.exe
 
 ### `Segments`
 
-This is the resumable work area.
+This is the resumable work area. It stores split segments, enhanced segments, temp image/video files, validation logs, FFmpeg logs, and Video2X logs.
 
-It stores:
+Do not delete it while a job is unfinished. It is how the tool resumes instead of starting from zero.
 
-- split video segments
-- enhanced video segments
-- image temp files
-- validation logs
-- Video2X logs
-- FFmpeg logs
+## Quick Start
 
-Do not delete this folder while a job is unfinished. It is what allows the tool to resume instead of restarting from zero.
-
-## Main Script
-
-Run:
-
-```text
-Start_AI_Enhancer.bat
-```
-
-The script scans `To enhance`, detects file types, and shows a list like:
-
-```text
-1. [image] photo.jpg
-2. [video] cartoon.mp4
-```
-
-If there are several images, you can type:
-
-```text
-all
-```
-
-That processes all images in one batch.
+1. Put image or video files into `To enhance`.
+2. Double-click `Start_AI_Enhancer.bat`.
+3. Choose the file number.
+4. For multiple images, type `all` to process all images.
+5. Pick an image mode when asked.
+6. Wait for the final result in `Enhanced`.
 
 Videos are processed one at a time on purpose because they can run for many hours.
 
@@ -109,18 +86,19 @@ From a terminal:
 Start_AI_Enhancer.bat check
 ```
 
-This verifies:
+This verifies that the required folders and tools exist:
 
-- root folders exist
-- FFmpeg exists
-- FFprobe exists
-- Video2X exists
-
-If something is missing, the script tells you what to fix.
+- FFmpeg
+- FFprobe
+- Video2X
+- `To enhance`
+- `Enhanced`
+- `Segments`
+- `Tools`
 
 ## Image Enhancement
 
-The image workflow uses RealESRGAN through Video2X.
+The image pipeline uses Video2X with RealESRGAN.
 
 Available modes:
 
@@ -148,11 +126,13 @@ Output: PNG
 Extra pass: light sharpen
 ```
 
-The image system validates the final PNG. If old temp files were created with another mode, it rebuilds them automatically.
+The image pipeline validates the final PNG. If temp files were created with another mode or an older pipeline, the tool deletes only the stale files and rebuilds them.
+
+For old grayscale JPGs with small color noise, the tool also protects against broken color channels. If the source is visually black and white, the final enhanced PNG is forced back to grayscale so green/magenta corruption is rejected and rebuilt automatically.
 
 ## Video Enhancement
 
-The video workflow is conservative and resumable.
+The video pipeline is conservative and resumable.
 
 It does this:
 
@@ -176,24 +156,25 @@ Final height: 1080p
 Audio: copy first, AAC fallback
 ```
 
-## Resume Behavior
+## Resume And Repair
 
-If the PC shuts down, Video2X crashes, or you stop the job:
+If the PC shuts down, Video2X crashes, or you stop the job, just run:
 
 ```text
-run Start_AI_Enhancer.bat again
+Start_AI_Enhancer.bat
 ```
 
 The tool checks what already exists and continues from the last valid step.
 
 It can recover from:
 
-- missing segments
+- missing source segments
 - broken enhanced segments
 - invalid temp files
 - failed audio copy
 - invalid final video
 - old image temp files from another mode
+- grayscale images that accidentally produced colored artifacts
 
 ## Keyboard Notes
 
@@ -212,18 +193,18 @@ q       abort Video2X
 Ctrl+C  stop the BAT, then rerun later to resume
 ```
 
-## GitHub Notes
+## What Goes In GitHub
 
-The repo should include:
+Commit:
 
 - `Start_AI_Enhancer.bat`
 - `README.md`
-- empty folder markers
 - `.gitignore`
+- empty folder markers such as `.gitkeep`
 
-The repo should not include:
+Do not commit:
 
-- original media
+- source media
 - enhanced outputs
 - split segments
 - temp files
@@ -231,8 +212,6 @@ The repo should not include:
 - FFmpeg binaries
 - Video2X binaries
 
-## The Point
+## Goal
 
-This is meant to feel like a personal media repair station.
-
-Drop a bad-quality image or video into `To enhance`, run one BAT, and let the tool choose the right path.
+This is meant to be a personal media repair station: one folder, one launcher, automatic image/video detection, resumable work, and final outputs that are validated before you trust them.
